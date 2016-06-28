@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 import time
 import sys
 import os
@@ -116,6 +117,7 @@ def login(session, URL, email, password):   #ugly ugly code in here
     return 0
 
 def download_all_zips_on_page(session, path='assignments'):
+    time.sleep(5)
     links = session.find_elements_by_css_selector('a')
 
     if not os.path.exists(path):
@@ -151,7 +153,12 @@ def download_all_zips_on_page(session, path='assignments'):
             #     print("Failed to download "+url)
             #     continue
             print(url)
-            r = requests.get(url)
+            time.sleep(3)
+            try:
+                r = requests.get(url)
+            except requests.exceptions.ConnectionError:
+                print("Error: "+url)
+                #r.status_code = "Connection refused"
             with open(path+url[url.rfind('/'):], 'wb') as f:
                 f.write(r.content)
             render(session, os.getcwd()+'/'+path+'/zip_page')
@@ -240,7 +247,10 @@ def get_assign_info(session):
 def download_all_assignments(session, assign_info):
     for i in assign_info:
         session.get(i[0])
-        wait_for_load(session)
+        try:
+            wait_for_load(session)
+        except TimeoutException:
+                print("Timeout error (download all assignments)")
         download_all_zips_on_page(session, 'assignments/'+i[1])
 
 def download_sidebar_pages(session):
@@ -255,7 +265,10 @@ def download_sidebar_pages(session):
     # print(links)
     for i in links:
         session.get(i[0])
-        wait_for_load(session)
+        try:
+            wait_for_load(session)
+        except TimeoutException:
+            print("Timeout error (download sidebar pages)")
         path = i[1]+'/'
         download_all_zips_on_page(session, path)
         print(path, os.listdir(os.getcwd()+'/'+path))
